@@ -4,9 +4,7 @@ namespace ChatbotEvaluator;
 
 public static class Seed
 {
-    static string P(string desc) =>
-        $"Você é um cliente simulado conversando com o chatbot de uma loja online. {desc} " +
-        "Escreva SOMENTE a próxima mensagem do cliente, em português, curta (1 a 3 frases), sem narração e sem aspas.";
+    static string P(string desc) => Defaults.Persona(desc);
 
     public static async Task InitAsync(IServiceProvider sp)
     {

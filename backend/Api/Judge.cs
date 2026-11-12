@@ -6,7 +6,7 @@ namespace ChatbotEvaluator;
 public class Judge(ILlmClient llm)
 {
     const string System = """
-        Você avalia conversas entre um cliente simulado e um chatbot de atendimento.
+        Você avalia conversas entre um cliente e um chatbot de atendimento (reais, simuladas ou digitadas).
         Você recebe o objetivo do cliente, a base de conhecimento do bot (a ÚNICA fonte de verdade) e a conversa.
         Critérios:
         - resolved: true se o bot tratou o pedido corretamente segundo as regras (atendeu, negou com educação ou encaminhou ao humano quando devia).
@@ -24,7 +24,8 @@ public class Judge(ILlmClient llm)
         CancellationToken ct = default)
     {
         var convo = string.Join("\n", transcript.Select(m => $"{(m.Role == "customer" ? "Cliente" : "Bot")}: {m.Content}"));
-        var prompt = $"Objetivo do cliente: {goal}\n\nBase de conhecimento do bot:\n{knowledge}\n\nConversa:\n{convo}";
+        var objective = string.IsNullOrWhiteSpace(goal) ? "(não informado; deduza pela conversa)" : goal;
+        var prompt = $"Objetivo do cliente: {objective}\n\nBase de conhecimento do bot:\n{knowledge}\n\nConversa:\n{convo}";
 
         // Uma nova tentativa caso o modelo devolva um JSON inválido.
         for (var attempt = 0; attempt < 2; attempt++)

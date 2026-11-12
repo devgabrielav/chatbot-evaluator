@@ -1,9 +1,13 @@
 export type Scenario = { id: number; name: string; persona: string; goal: string };
 export type Msg = { role: 'customer' | 'bot'; content: string };
+export type Source = 'simulado' | 'manual' | 'importado';
 export type Run = {
   id: number;
-  scenarioId: number;
-  scenarioName: string;
+  scenarioId: number | null;
+  title: string;
+  source: Source;
+  goal: string;
+  botPrompt: string;
   createdAt: string;
   resolved: boolean;
   hallucinated: boolean;
@@ -12,11 +16,11 @@ export type Run = {
   reason: string;
   transcript: Msg[];
 };
-export type Stat = {
-  scenarioId: number;
-  scenarioName: string;
-  runs: number;
-  resolvedRate: number;
-  avgScore: number;
-  hallucinations: number;
+export type EvaluatePayload = {
+  scenarioId: number | null;
+  title: string;
+  source: Source;
+  goal: string;
+  botPrompt: string;
+  transcript: Msg[];
 };

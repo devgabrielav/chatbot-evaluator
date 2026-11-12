@@ -4,6 +4,11 @@ public static class Defaults
 {
     public const int Turns = 5;
 
+    // Transforma a descrição do cenário no prompt do cliente simulado.
+    public static string Persona(string description) =>
+        $"Você é um cliente simulado conversando com o chatbot de uma loja online. {description.Trim()} " +
+        "Escreva SOMENTE a próxima mensagem do cliente, em português, curta (1 a 3 frases), sem narração e sem aspas.";
+
     // Bot alvo: a base de conhecimento abaixo é a "fonte da verdade" usada pelo juiz.
     public const string BotPrompt = """
         Você é a Aurora, assistente virtual da Lojinha Aurora (loja online de artigos para casa).

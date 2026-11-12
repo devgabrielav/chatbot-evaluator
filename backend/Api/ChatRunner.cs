@@ -1,20 +1,24 @@
 namespace ChatbotEvaluator;
 
-// Orquestra a conversa: o LLM "cliente" e o bot alvo se alternam por N turnos.
+// Gera as falas do cliente simulado e do bot. Os endpoints de turno usam estes métodos
+// individualmente (o front controla o ritmo); RunAsync roda a conversa inteira de uma vez.
 public class ChatRunner(ILlmClient llm)
 {
     const string StartPrompt = "Inicie a conversa com a sua primeira mensagem.";
+
+    public Task<string> CustomerTurnAsync(string persona, IEnumerable<ChatMessage> transcript, CancellationToken ct = default) =>
+        llm.CompleteAsync(persona, ToView(transcript, "customer", StartPrompt), ct);
+
+    public Task<string> BotTurnAsync(string botPrompt, IEnumerable<ChatMessage> transcript, CancellationToken ct = default) =>
+        llm.CompleteAsync(botPrompt, ToView(transcript, "bot"), ct);
 
     public async Task<List<ChatMessage>> RunAsync(string persona, string botPrompt, int turns, CancellationToken ct = default)
     {
         var transcript = new List<ChatMessage>();
         for (var i = 0; i < turns; i++)
         {
-            var customer = await llm.CompleteAsync(persona, ToView(transcript, "customer", StartPrompt), ct);
-            transcript.Add(new("customer", customer));
-
-            var bot = await llm.CompleteAsync(botPrompt, ToView(transcript, "bot"), ct);
-            transcript.Add(new("bot", bot));
+            transcript.Add(new("customer", await CustomerTurnAsync(persona, transcript, ct)));
+            transcript.Add(new("bot", await BotTurnAsync(botPrompt, transcript, ct)));
         }
         return transcript;
     }
