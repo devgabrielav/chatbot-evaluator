@@ -23,7 +23,7 @@ public class TurnTests
         await new ChatRunner(llm).BotTurnAsync("bot", transcript);
 
         var roles = llm.Calls[0].Messages.Select(m => m.Role).ToArray();
-        Assert.Equal(["user", "assistant", "user"], roles);
+        Assert.Equal(new[] { "user", "assistant", "user" }, roles);
     }
 
     [Fact]
