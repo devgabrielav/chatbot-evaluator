@@ -134,6 +134,34 @@ dotnet test backend/Tests/Tests.csproj
 - The judge is designed to assess responses against a source of truth, which helps detect unsupported or invented answers.
 - The app includes optional access protection for public deployments.
 
+## 📸 Screenshots
+
+Desktop
+<p align="center">
+  <img src="assets/chatbot-1.png" alt="Chatbot Evaluator desktop dashboard showing scenario simulation and results" width="100%" />
+</p>
+<p align="center">
+  <img src="assets/chatbot-3.png" alt="Chatbot Evaluator interface with live chat and evaluation summary" width="100%" />
+</p>
+
+Features
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <strong>Scenario simulation</strong><br />
+      <img src="assets/chatbot-2.png" alt="Scenario simulation panel for chatbot evaluation" width="100%" />
+    </td>
+    <td align="center" width="50%">
+      <strong>Results dashboard</strong><br />
+      <img src="assets/chatbot-4.png" alt="Evaluation results with scores and analysis" width="100%" />
+    </td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="assets/chatbot-5.png" alt="Chatbot Evaluator transcript import and live conversation workflow" width="100%" />
+</p>
+
 ## 📌 Summary
 
 This project is a practical evaluation sandbox for chatbot quality: it helps test conversations, compare expected behavior against reality, and quickly spot regressions in prompt-based systems.
