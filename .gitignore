@@ -3,3 +3,9 @@ obj/
 node_modules/
 dist/
 .env
+
+# SQLite runtime artifacts generated locally by EF Core / app startup
+*.db
+*.db-shm
+*.db-wal
+backend/Api/data/
