@@ -1,71 +1,116 @@
-# Bancada de testes para chatbots
+# 🤖 Chatbot Evaluator
 
-Um "teste automatizado para chatbots": um LLM faz o papel de **cliente** (irritado, confuso, objetivo...), conversa com um **bot alvo** e um segundo LLM atua como **juiz**, avaliando a conversa. O dashboard mostra a taxa de resolução, a nota média e as alucinações por cenário.
+This project is a lightweight evaluation workspace for testing chatbot behavior in realistic customer-service scenarios.
 
-## O que dá para fazer
+The app simulates a customer and a bot conversation, then uses a second LLM as a judge to score the interaction. It helps teams review whether the bot solved the user request, stayed within the allowed knowledge, avoided hallucinations, and maintained a good tone.
 
-- **Simulação:** escolha um cenário (ou crie o seu) e veja o cliente simulado e o bot conversando ao vivo, mensagem por mensagem. Dá para parar a qualquer momento; o juiz avalia no fim.
-- **Chat ao vivo:** converse você mesma com o bot, tente quebrá-lo e peça a avaliação.
-- **Importar conversa:** cole uma conversa (texto ou JSON) e o juiz avalia contra a base de conhecimento do bot.
-- **Base de conhecimento editável:** mude uma regra do bot (ex.: prazo de troca) e rode de novo para ver o efeito. É um mini teste de regressão de prompts.
-- **Resultados:** resumo, tabela por cenário e histórico filtrável por origem, com a transcrição e o veredito.
+## 🎯 What the app does
 
-## Sobre conversas reais
+- Simulate customer conversations with different personas and goals
+- Run live customer/bot turns and inspect the interaction step by step
+- Evaluate a conversation against the bot's knowledge base
+- Import transcripts and score them automatically
+- Review results by scenario, source, and verdict
+- Compare how prompt changes affect chatbot outcomes
 
-O projeto não traz conversas reais de clientes (seriam dados pessoais). Para avaliar com dados mais realistas:
-- Use o chat ao vivo e peça a amigos para tentar quebrar o bot.
-- Importe conversas de conjuntos públicos de atendimento ao cliente (por exemplo, no Hugging Face), conferindo licença e idioma. Pode ser preciso converter para o formato `Cliente:` / `Bot:`.
-- Se usar conversas de verdade, **anonimize antes** (nomes, telefones, e-mails, números de pedido) por causa da LGPD.
+## 🧩 Core workflow
 
-As conversas de exemplo da aba de importação foram escritas para teste e não são reais.
+1. A scenario defines the customer profile and objective.
+2. A simulated customer speaks to the bot.
+3. The bot replies using its configured prompt and knowledge.
+4. A judge evaluates the final transcript.
+5. Results are stored and displayed in the dashboard.
 
-## Arquitetura
+This is useful for testing prompt regressions, validating response quality, and checking whether the bot drifts away from the expected rules.
 
-```
-React + TS  ──►  API .NET 8  ──►  SQL Server
- (dashboard)      │
-                  ├─ ChatRunner : orquestra cliente simulado <-> bot (N turnos)
-                  ├─ Judge      : avalia e devolve JSON (resolveu? alucinou? tom? nota 1-5)
-                  └─ ILlmClient : abstração do LLM (OpenAiCompatibleClient ou AnthropicClient em produção, FakeLlm nos testes)
-```
+## 🛠️ Technologies
 
-Tabelas: `Scenarios` (persona + objetivo do cliente) e `Runs` (conversa em JSON, origem, base de conhecimento usada e veredito do juiz).
+### Backend
+- .NET 8
+- ASP.NET Core
+- Entity Framework Core
+- SQL Server
+- LLM abstraction layer for OpenAI-compatible providers and Anthropic
 
-A API é *stateless* para os turnos (`/api/chat/customer-turn` e `/api/chat/bot-turn` recebem a conversa até ali), então o front controla o ritmo e mostra cada mensagem ao vivo. A avaliação (`/api/evaluate`) serve para qualquer origem.
+### Frontend
+- React
+- TypeScript
+- Vite
+- CSS
 
-## Como rodar
+### AI and evaluation layer
+- OpenAI-compatible API support (Groq, Gemini, Ollama, and similar providers)
+- Anthropic API option
+- Structured evaluation JSON with validation and retry logic
+
+### Testing
+- xUnit
+- Fake LLM client for deterministic tests
+
+## 🚀 Run locally
+
+### Option 1: Docker
 
 ```bash
-cp .env.example .env        # configure um provedor de LLM (Groq, Gemini, Ollama ou Anthropic)
 docker compose up --build
-# dashboard: http://localhost:5173   API: http://localhost:8080
 ```
 
-Sem Docker: suba um SQL Server, ajuste `backend/Api/appsettings.json`, rode `dotnet run --project backend/Api` e, em `frontend/`, `npm install && npm run dev`.
+Then open:
+- Frontend: http://localhost:5173
+- API: http://localhost:8080
 
-Testes: `dotnet test backend/Tests/Tests.csproj`
+### Option 2: Manual setup
 
-## Decisões de projeto
+1. Start a SQL Server instance.
+2. Update the connection string in `backend/Api/appsettings.json`.
+3. Configure your LLM provider credentials in the environment.
+4. Run the API:
 
-- **Provedor de LLM configurável**: o cliente padrão usa o formato `/chat/completions`, aceito por Groq, Gemini, Ollama e outros, então o projeto roda com planos gratuitos. Trocar de provedor é só mudar o `.env`.
-- **`ILlmClient`**: isola o provedor e deixa o `ChatRunner` e o `Judge` testáveis sem chamar a API (e sem custo).
-- **Ponto de vista de cada lado**: cada LLM vê o que disse como `assistant` e o que o outro disse como `user`, respeitando a regra da API de alternar papéis.
-- **Juiz com base de conhecimento**: o juiz recebe os fatos do bot como única fonte de verdade, o que permite detectar alucinação objetivamente.
-- **Saída estruturada com validação**: o JSON do juiz é validado (nota de 1 a 5) e há uma nova tentativa se vier inválido.
-- **Cenários que testam falhas**: cupom inexistente, troca fora do prazo e pergunta fora do escopo existem para tentar fazer o bot alucinar.
+```bash
+dotnet run --project backend/Api
+```
 
-## Validação do juiz (preencher com seus resultados)
+5. Install frontend dependencies and start the app:
 
-Revisei manualmente 5 conversas e comparei com o veredito do juiz:
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-| Conversa | Minha avaliação | Juiz | Concordou? |
-|---|---|---|---|
-| | | | |
+### Tests
 
-## Limitações e próximos passos
+```bash
+dotnet test backend/Tests/Tests.csproj
+```
 
-- O juiz também é um LLM e pode errar; o ideal é calibrá-lo com um conjunto maior de conversas avaliadas por humanos.
-- As respostas não são determinísticas: o mesmo cenário pode render notas diferentes (rodar N vezes e tirar a média ajudaria).
-- Modelos gratuitos e pequenos erram mais o JSON do juiz e têm limite de requisições por minuto (o cliente espera e tenta de novo em caso de 429).
-- Cada rodada gasta ~11 chamadas ao LLM; falta controle de custo e execução em paralelo.
-- Falta autenticação, paginação e cenários editáveis pela interface.
+## 🧠 Project structure
+
+```text
+backend/
+  Api/
+  Tests/
+frontend/
+  src/
+  package.json
+docker-compose.yml
+README.md
+```
+
+## 📌 Highlights
+
+- Configurable LLM provider through environment variables
+- Stateless chat API for turn-by-turn interactions
+- Scenario-based evaluation for customer support use cases
+- Result history and verdict summaries
+- Built for regression testing of prompts and bot behavior
+
+## ⚠️ Important notes
+
+- The judge is an LLM, so it can still make mistakes and should be calibrated with human-reviewed examples.
+- Scores may vary between runs because responses are not fully deterministic.
+- LLM usage can add cost and rate-limit constraints depending on the provider.
+
+---
+
+This app is designed to make chatbot quality checks more transparent, repeatable, and easier to compare across prompt changes.

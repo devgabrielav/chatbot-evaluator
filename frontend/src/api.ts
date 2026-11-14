@@ -1,7 +1,13 @@
 import type { EvaluatePayload, Msg, Run, Scenario } from './types';
 
+const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+const resolveUrl = (path: string) => {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return API_BASE ? `${API_BASE}/api${normalizedPath}` : `/api${normalizedPath}`;
+};
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api${path}`, init);
+  const res = await fetch(resolveUrl(path), init);
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     if (res.status === 400 && text) throw new Error(text.replace(/^"|"$/g, ''));
