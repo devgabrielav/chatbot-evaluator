@@ -2,6 +2,10 @@
 
 A lightweight evaluation workspace for chatbot behavior. The app simulates a customer conversation, lets a target bot respond, and then uses a second LLM as a judge to assess the interaction. It also supports live chat and imported transcripts, making it useful for prompt regression testing and quality review.
 
+## 🌐 Live demo
+
+- https://chatbot-evaluator.onrender.com/
+
 ## 🎯 Project goal
 
 This project helps evaluate whether a chatbot follows its expected rules, answers consistently, and avoids hallucinations or policy-breaking behavior. Instead of relying only on manual testing, it creates repeatable scenarios where a simulated user and the bot interact under controlled conditions, and a judge rates the outcome.
