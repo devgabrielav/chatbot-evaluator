@@ -1,82 +1,121 @@
 # 🤖 Chatbot Evaluator
 
-This project is a lightweight evaluation workspace for testing chatbot behavior in realistic customer-service scenarios.
+A lightweight evaluation workspace for chatbot behavior. The app simulates a customer conversation, lets a target bot respond, and then uses a second LLM as a judge to assess the interaction. It also supports live chat and imported transcripts, making it useful for prompt regression testing and quality review.
 
-The app simulates a customer and a bot conversation, then uses a second LLM as a judge to score the interaction. It helps teams review whether the bot solved the user request, stayed within the allowed knowledge, avoided hallucinations, and maintained a good tone.
+## 🎯 Project goal
 
-## 🎯 What the app does
+This project helps evaluate whether a chatbot follows its expected rules, answers consistently, and avoids hallucinations or policy-breaking behavior. Instead of relying only on manual testing, it creates repeatable scenarios where a simulated user and the bot interact under controlled conditions, and a judge rates the outcome.
 
-- Simulate customer conversations with different personas and goals
-- Run live customer/bot turns and inspect the interaction step by step
-- Evaluate a conversation against the bot's knowledge base
-- Import transcripts and score them automatically
-- Review results by scenario, source, and verdict
-- Compare how prompt changes affect chatbot outcomes
+## ✨ What the app can do
 
-## 🧩 Core workflow
+- **Scenario simulation:** run a customer-bot conversation step by step and review the result at the end
+- **Live chat:** talk directly with the bot and ask for an evaluation
+- **Transcript import:** analyze pasted conversations or JSON data against the bot knowledge base
+- **Editable knowledge base:** adjust a rule and re-run the scenario to test regressions
+- **Results dashboard:** review summaries, scenario-level scores, and historical runs
 
-1. A scenario defines the customer profile and objective.
-2. A simulated customer speaks to the bot.
-3. The bot replies using its configured prompt and knowledge.
-4. A judge evaluates the final transcript.
-5. Results are stored and displayed in the dashboard.
+## 🧠 How it works
 
-This is useful for testing prompt regressions, validating response quality, and checking whether the bot drifts away from the expected rules.
+The app creates a conversation between a simulated customer and the target bot. A second model acts as the judge and evaluates whether the bot followed the expected rules, answered correctly, and stayed grounded in the provided knowledge.
 
-## 🛠️ Technologies
+The flow is intentionally simple:
+
+1. A scenario defines the context and expected facts
+2. A simulated customer asks questions or triggers edge cases
+3. The bot responds in the conversation
+4. The judge reviews the transcript and returns a structured assessment
+5. The results can be inspected in the UI or compared across runs
+
+## 🏗️ Architecture
+
+```text
+Browser (React + TypeScript)
+      │
+      ▼
+  API (.NET 8)
+      ├─ ChatRunner: orchestrates customer and bot turns
+      ├─ Judge: evaluates responses and returns structured scoring
+      ├─ ILlmClient: abstracts provider-specific LLM integrations
+      ├─ SQLite: stores scenarios and evaluation runs
+      └─ Static frontend serving for local or simple deployments
+```
+
+## 🧩 Tech stack
 
 ### Backend
+
 - .NET 8
-- ASP.NET Core
-- Entity Framework Core
-- SQL Server
-- LLM abstraction layer for OpenAI-compatible providers and Anthropic
+- ASP.NET Core Minimal API
+- C#
+- SQLite
+- EF Core
+- LLM integrations via OpenAI-compatible APIs, Anthropic, and other compatible providers
 
 ### Frontend
+
 - React
 - TypeScript
 - Vite
 - CSS
 
-### AI and evaluation layer
-- OpenAI-compatible API support (Groq, Gemini, Ollama, and similar providers)
-- Anthropic API option
-- Structured evaluation JSON with validation and retry logic
+### Core project modules
 
-### Testing
-- xUnit
-- Fake LLM client for deterministic tests
+- `backend/Api/ChatRunner.cs` — conversation orchestration
+- `backend/Api/Judge.cs` — automated evaluation logic
+- `backend/Api/ILlmClient.cs` — abstraction for LLM providers
+- `backend/Api/OpenAiCompatibleClient.cs` — generic OpenAI-style provider client
+- `backend/Api/AnthropicClient.cs` — Anthropic client
+- `frontend/src` — app interface and interaction flow
 
 ## 🚀 Run locally
 
 ### Option 1: Docker
 
-```bash
-docker compose up --build
-```
+1. Create the environment file:
 
-Then open:
-- Frontend: http://localhost:5173
-- API: http://localhost:8080
+   ```bash
+   cp .env.example .env
+   ```
 
-### Option 2: Manual setup
+2. Fill in the required LLM values such as provider, API key, base URL, and model.
+3. Start the app:
 
-1. Start a SQL Server instance.
-2. Update the connection string in `backend/Api/appsettings.json`.
-3. Configure your LLM provider credentials in the environment.
-4. Run the API:
+   ```bash
+   docker compose up --build
+   ```
 
-```bash
-dotnet run --project backend/Api
-```
+4. Open the app at:
 
-5. Install frontend dependencies and start the app:
+   ```text
+   http://localhost:8080
+   ```
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### Option 2: Local development
+
+1. Start the API:
+
+   ```bash
+   dotnet run --project backend/Api
+   ```
+
+2. Install frontend dependencies:
+
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+3. Run the frontend:
+
+   ```bash
+   npm run dev
+   ```
+
+4. Open the app at:
+
+   ```text
+   http://localhost:5173
+   ```
 
 ### Tests
 
@@ -84,33 +123,13 @@ npm run dev
 dotnet test backend/Tests/Tests.csproj
 ```
 
-## 🧠 Project structure
+## 🔒 Notes
 
-```text
-backend/
-  Api/
-  Tests/
-frontend/
-  src/
-  package.json
-docker-compose.yml
-README.md
-```
+- The project keeps a local SQLite database by default, which makes it easy to run without a separate database service.
+- The app can use different LLM providers through environment-based configuration.
+- The judge is designed to assess responses against a source of truth, which helps detect unsupported or invented answers.
+- The app includes optional access protection for public deployments.
 
-## 📌 Highlights
+## 📌 Summary
 
-- Configurable LLM provider through environment variables
-- Stateless chat API for turn-by-turn interactions
-- Scenario-based evaluation for customer support use cases
-- Result history and verdict summaries
-- Built for regression testing of prompts and bot behavior
-
-## ⚠️ Important notes
-
-- The judge is an LLM, so it can still make mistakes and should be calibrated with human-reviewed examples.
-- Scores may vary between runs because responses are not fully deterministic.
-- LLM usage can add cost and rate-limit constraints depending on the provider.
-
----
-
-This app is designed to make chatbot quality checks more transparent, repeatable, and easier to compare across prompt changes.
+This project is a practical evaluation sandbox for chatbot quality: it helps test conversations, compare expected behavior against reality, and quickly spot regressions in prompt-based systems.

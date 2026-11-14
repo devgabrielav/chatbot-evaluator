@@ -1,21 +1,54 @@
 using System.Text.Json;
+using System.Threading.RateLimiting;
 using ChatbotEvaluator;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+// Plataformas de hospedagem informam a porta pela variável PORT.
+builder.WebHost.UseUrls($"http://0.0.0.0:{Environment.GetEnvironmentVariable("PORT") ?? "8080"}");
 
-builder.Services.AddDbContext<AppDb>(o => o.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+builder.Services.AddDbContext<AppDb>(o => o.UseSqlite(builder.Configuration.GetConnectionString("Default")));
 // LLM_PROVIDER=anthropic usa a API da Anthropic; qualquer outro valor (padrão) usa o formato OpenAI,
 // compatível com Groq, Gemini, Ollama e outros provedores gratuitos.
 if (builder.Configuration["LLM_PROVIDER"] == "anthropic")
     builder.Services.AddHttpClient<ILlmClient, AnthropicClient>(c => c.Timeout = TimeSpan.FromSeconds(90));
 else
     builder.Services.AddHttpClient<ILlmClient, OpenAiCompatibleClient>(c => c.Timeout = TimeSpan.FromSeconds(120));
+// Limite por IP para proteger a cota da sua chave de LLM em um deploy público.
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = 429;
+    o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 120, Window = TimeSpan.FromMinutes(1) }));
+});
 builder.Services.AddScoped<ChatRunner>();
 builder.Services.AddScoped<Judge>();
 
 var app = builder.Build();
 await Seed.InitAsync(app.Services);
+
+app.UseRateLimiter();
+
+// O front (React) é servido pela própria API a partir de wwwroot.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+// Se ACCESS_CODE estiver definido, a API exige o código (header X-Access-Code).
+var accessCode = app.Configuration["ACCESS_CODE"];
+if (!string.IsNullOrEmpty(accessCode))
+{
+    app.Use(async (ctx, next) =>
+    {
+        if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Request.Headers["X-Access-Code"] != accessCode)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+        await next();
+    });
+}
 
 // Limites simples para proteger custo e banco: até 40 mensagens de 4000 caracteres.
 static bool Valid(List<ChatMessage>? t) =>
@@ -91,5 +124,7 @@ app.MapGet("/api/runs", async (AppDb db) =>
     var runs = await db.Runs.OrderByDescending(r => r.Id).Take(100).ToListAsync();
     return runs.Select(r => Mapper.ToDto(r, JsonSerializer.Deserialize<List<ChatMessage>>(r.TranscriptJson) ?? []));
 });
+
+app.MapFallbackToFile("index.html");
 
 app.Run();

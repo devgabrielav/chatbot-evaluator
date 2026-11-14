@@ -26,5 +26,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t chatbot-evaluator-api ./backend
-      - run: docker build -t chatbot-evaluator-web ./frontend
+      - run: docker build -t chatbot-evaluator .

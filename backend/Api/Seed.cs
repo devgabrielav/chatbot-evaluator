@@ -11,12 +11,7 @@ public static class Seed
         using var scope = sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDb>();
 
-        // O SQL Server no Docker demora para subir: tenta algumas vezes.
-        for (var attempt = 1; ; attempt++)
-        {
-            try { await db.Database.EnsureCreatedAsync(); break; }
-            catch when (attempt < 10) { await Task.Delay(TimeSpan.FromSeconds(3)); }
-        }
+        await db.Database.EnsureCreatedAsync();
 
         if (await db.Scenarios.AnyAsync()) return;
 

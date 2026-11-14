@@ -1,19 +1,23 @@
 import type { EvaluatePayload, Msg, Run, Scenario } from './types';
 
-const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
-const resolveUrl = (path: string) => {
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return API_BASE ? `${API_BASE}/api${normalizedPath}` : `/api${normalizedPath}`;
-};
+export class AuthError extends Error {
+  constructor() {
+    super('Código de acesso inválido ou ausente.');
+  }
+}
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(resolveUrl(path), init);
+  const code = sessionStorage.getItem('accessCode');
+  const headers = { ...(init?.headers as Record<string, string> | undefined), ...(code ? { 'X-Access-Code': code } : {}) };
+  const res = await fetch(`/api${path}`, { ...init, headers });
+  if (res.status === 401) throw new AuthError();
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     if (res.status === 400 && text) throw new Error(text.replace(/^"|"$/g, ''));
+    if (res.status === 429) throw new Error('Muitas requisições. Aguarde um minuto e tente de novo.');
     throw new Error(
       res.status >= 500
-        ? 'Erro no servidor. Confira a chave, o modelo e o provedor no .env (docker compose logs api).'
+        ? 'Erro no servidor. Confira a chave, o modelo e o provedor nas variáveis de ambiente (veja os logs da API).'
         : `A API respondeu ${res.status}`,
     );
   }

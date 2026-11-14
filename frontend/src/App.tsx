@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, errMsg } from './api';
+import type { FormEvent } from 'react';
+import { api, AuthError, errMsg } from './api';
 import type { Run, Scenario } from './types';
 import { BotPanel } from './components/BotPanel';
 import SimulationTab from './components/SimulationTab';
@@ -22,6 +23,8 @@ export default function App() {
   const [defaultPrompt, setDefaultPrompt] = useState('');
   const [botPrompt, setBotPrompt] = useState(() => localStorage.getItem('botPrompt') ?? '');
   const [error, setError] = useState('');
+  const [needCode, setNeedCode] = useState(false);
+  const [code, setCode] = useState('');
 
   const reload = useCallback(async () => {
     const [s, r] = await Promise.all([api.scenarios(), api.runs()]);
@@ -29,17 +32,45 @@ export default function App() {
     setRuns(r);
   }, []);
 
-  useEffect(() => {
-    reload().catch((e) => setError(errMsg(e)));
-    api.botPrompt().then((d) => {
+  const init = useCallback(async () => {
+    setError('');
+    try {
+      await reload();
+      const d = await api.botPrompt();
       setDefaultPrompt(d.prompt);
       setBotPrompt((p) => p || d.prompt);
-    }).catch((e) => setError(errMsg(e)));
+      setNeedCode(false);
+    } catch (e) {
+      if (e instanceof AuthError) setNeedCode(true);
+      else setError(errMsg(e));
+    }
   }, [reload]);
+
+  useEffect(() => { void init(); }, [init]);
 
   useEffect(() => {
     if (botPrompt) localStorage.setItem('botPrompt', botPrompt);
   }, [botPrompt]);
+
+  const submitCode = (e: FormEvent) => {
+    e.preventDefault();
+    sessionStorage.setItem('accessCode', code.trim());
+    void init();
+  };
+
+  if (needCode) {
+    return (
+      <div className="app">
+        <h1>Bancada de testes para chatbots</h1>
+        <form className="conversation single" onSubmit={submitCode}>
+          <h2>Código de acesso</h2>
+          <p className="hint">Este site usa uma chave de LLM com cota limitada. Informe o código para continuar.</p>
+          <input type="password" value={code} onChange={(e) => setCode(e.target.value)} aria-label="Código de acesso" />
+          <p><button type="submit" disabled={!code.trim()}>Entrar</button></p>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="app">
