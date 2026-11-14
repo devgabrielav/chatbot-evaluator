@@ -31,12 +31,12 @@ public class Judge(ILlmClient llm)
         for (var attempt = 0; attempt < 2; attempt++)
         {
             var raw = await llm.CompleteAsync(System, [new LlmMessage("user", prompt)], ct);
-            if (TryParse(raw, out var evaluation)) return evaluation;
+            if (TryParseEvaluation(raw, out var evaluation)) return evaluation;
         }
         throw new InvalidOperationException("O juiz não devolveu um JSON válido.");
     }
 
-    public static bool TryParse(string raw, out Evaluation evaluation)
+    public static bool TryParseEvaluation(string raw, out Evaluation evaluation)
     {
         evaluation = default!;
         var start = raw.IndexOf('{');
