@@ -148,11 +148,9 @@ Features
 <table>
   <tr>
     <td align="center" width="50%">
-      <strong>Scenario simulation</strong><br />
       <img src="assets/chatbot-2.png" alt="Scenario simulation panel for chatbot evaluation" width="100%" />
     </td>
     <td align="center" width="50%">
-      <strong>Results dashboard</strong><br />
       <img src="assets/chatbot-4.png" alt="Evaluation results with scores and analysis" width="100%" />
     </td>
   </tr>
