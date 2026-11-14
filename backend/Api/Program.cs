@@ -4,6 +4,26 @@ using ChatbotEvaluator;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var defaultConnection = builder.Configuration.GetConnectionString("Default") ?? "Data Source=data/chateval.db";
+var dbPart = defaultConnection
+    .Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+    .FirstOrDefault(p => p.StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase));
+
+if (!string.IsNullOrWhiteSpace(dbPart))
+{
+    var rawDbPath = dbPart["Data Source=".Length..].Trim();
+    var dbPath = Path.IsPathRooted(rawDbPath)
+        ? rawDbPath
+        : Path.Combine(Directory.GetCurrentDirectory(), rawDbPath);
+
+    var dbDir = Path.GetDirectoryName(dbPath);
+    if (!string.IsNullOrWhiteSpace(dbDir))
+        Directory.CreateDirectory(dbDir);
+
+    builder.Configuration["ConnectionStrings:Default"] = $"Data Source={dbPath}";
+}
+
 // Plataformas de hospedagem informam a porta pela variável PORT.
 builder.WebHost.UseUrls($"http://0.0.0.0:{Environment.GetEnvironmentVariable("PORT") ?? "8080"}");
 
